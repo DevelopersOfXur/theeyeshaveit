@@ -30,6 +30,10 @@
             padding: 0.5em;
         }
 
+        #roomidinput.fail {
+            border-color: red;
+        }
+
         button:hover {
             background-color: #455A64;
         }
@@ -106,6 +110,10 @@
             display: inline-block;
         }
 
+        .eye:focus {
+            outline: none;
+        }
+
         .eye.activeEye {
             background-color: #ECEFF1;
         }
@@ -115,7 +123,10 @@
         }
 
         .eyes {
-            height: 300px;
+            height: 280px;
+            width: 100%;
+            max-width: 900px;
+            margin: auto;
             position: relative;
         }
 
@@ -188,6 +199,10 @@
         changeEyeState(eye);
     });
 
+    socket.on('user count update', (count) => {
+        document.getElementById('roomusercount').innerText = count.toString();
+    })
+
     function updateEye(eye) {
         socket.emit('eye clicked', eye);
         changeEyeState(eye);
@@ -206,7 +221,6 @@
         socket.emit('join new room');
         socket.on('new room id', (roomid) => {
             document.getElementById('roomiddisplay').innerText = roomid;
-            console.log(roomid);
             enableEyeDisplay();
         })
     }
@@ -214,9 +228,12 @@
     function joinRoom() {
         socket.emit('room join', document.getElementById('roomidinput').value);
         socket.on('room join result', result => {
-            if (result) {
+            if (result == 'success') {
+                document.getElementById('roomidinput').classList.remove('fail');
                 document.getElementById('roomiddisplay').innerText = document.getElementById('roomidinput').value;
                 enableEyeDisplay();
+            } else {
+                document.getElementById('roomidinput').classList.add('fail');
             }
         })
     }
@@ -228,13 +245,20 @@
 
     window.onload = function() {
         document.getElementById("roomidinput").focus();
+        document.getElementById('roomidinput').addEventListener('keyup', (event) => {
+            console.log('asdf');
+            event.preventDefault();
+            if (event.key === 'Enter') {
+                joinRoom();
+            }
+        });
     };
 </script>
 
 <body>
     <div id="eyedisplay" class="hide">
         <div class="titlebar">
-            <p class="roomiddisplay">Room ID: <span id="roomiddisplay"></span></p>
+            <p class="roomiddisplay">Room ID: <span id="roomiddisplay"></span> (<span id="roomusercount"></span>/6)</p>
         </div>
         <div class="eyes">
             <button id="eye0" class="eye" onclick="updateEye(0)"></button>

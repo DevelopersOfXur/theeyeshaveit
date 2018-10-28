@@ -22,6 +22,7 @@ io.on('connection', function(socket){
             eyes: []
         }
         socket.emit('new room id', roomid);
+        socket.emit('user count update', rooms[roomid]['users'].length);
         mainSocketLoop(socket, roomid);
     })
     socket.on('room join', (enteredid) => {
@@ -34,10 +35,17 @@ io.on('connection', function(socket){
             }
         });
         if (roomExists) {
-            socket.emit('room join result', true)
-            rooms[roomid]['users'].push(socket);
+            if (rooms[roomid]['users'].length < 6) {
+                socket.emit('room join result', 'success');
+                rooms[roomid]['users'].push(socket);
+                rooms[roomid]['users'].forEach(s => {
+                    s.emit('user count update', rooms[roomid]['users'].length);
+                });    
+            } else {
+                socket.emit('room join result', 'count');
+            }
         } else {
-            socket.emit('room join result', false);
+            socket.emit('room join result', 'doesnt exist');
             return;
         }
 
@@ -60,10 +68,15 @@ function mainSocketLoop(socket, roomid) {
             }
         });
     })
+
     socket.on('disconnect', () => {
         rooms[roomid]['users'].splice(rooms[roomid]['users'].indexOf(socket), 1);
         if (rooms[roomid]['users'].length == 0) {
             delete rooms[roomid];
+        } else {
+            rooms[roomid]['users'].forEach(s => {
+                s.emit('user count update', rooms[roomid]['users'].length);
+            })
         }
     })
 }
