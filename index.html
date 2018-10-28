@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Socket.IO chat</title>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        hr {
+            width: 300px;
+        }
+
+        .eye {
+            width: 50px;
+            height: 50px;
+            background-color: #263238;
+        }
+
+        .eye.activeEye {
+            background-color: #ECEFF1;
+        }
+
+        .eye.activeEye:hover {
+            background-color: #B0BEC5;
+        }
+
+        .hide {
+            display: none !important;
+        }
+
+        body {
+            background-color: #263238;
+        }
+
+        button {
+            background-color: #263238;
+            border-color: #ECEFF1;
+            border-style: solid;
+            border-radius: 25px;
+            border-width: 1px;
+            color: #ECEFF1;
+            font-size: 1.5em;
+            padding: 0.5em;
+        }
+
+        button:hover {
+            background-color: #455A64;
+        }
+
+        .roomiddisplay {
+            color: #ECEFF1;
+        }
+
+        #roomprompt {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: absolute;
+            top:0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            margin: auto;
+            width: 300px;
+        }
+        
+        .roombutton {
+            width: 300px;
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+
+        #roomidinput {
+            width: 275px;
+            background-color: #263238;
+            border-color: #ECEFF1;
+            border-style: solid;
+            border-radius: 25px;
+            border-width: 1px;
+            color: #ECEFF1;
+            font-size: 1.5em;
+            padding: 0.5em;
+            text-align: center;
+        }
+
+        #roomidinput:focus {
+            outline: none;
+        }
+
+        .title {
+            font-size: 4em;
+            color: #ECEFF1;
+        }
+    </style>
+</head>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    var socket = io();
+
+    socket.on('initial eyes', (initialeyes) => {
+        if (initialeyes) {
+            initialeyes.split(',').forEach(eye => {
+                document.getElementById('eye' + eye.toString()).classList.add('activeEye');
+            });
+        }
+    })
+
+    socket.on('update eye', (eye) => {
+        changeEyeState(eye);
+    });
+
+    function updateEye(eye) {
+        socket.emit('eye clicked', eye);
+        changeEyeState(eye);
+    }
+
+    function changeEyeState(eye) {
+        let eyeElem = document.getElementById('eye' + eye.toString());
+        if (eyeElem.classList.contains('activeEye')) {
+            eyeElem.classList.remove('activeEye');
+        } else {
+            eyeElem.classList.add('activeEye');
+        }
+    }
+
+    function newRoom() {
+        socket.emit('join new room');
+        socket.on('new room id', (roomid) => {
+            document.getElementById('roomiddisplay').innerText = roomid;
+            console.log(roomid);
+            enableEyeDisplay();
+        })
+    }
+
+    function joinRoom() {
+        socket.emit('room join', document.getElementById('roomidinput').value);
+        socket.on('room join result', result => {
+            if (result) {
+                document.getElementById('roomiddisplay').innerText = document.getElementById('roomidinput').value;
+                enableEyeDisplay();
+            }
+        })
+    }
+
+    function enableEyeDisplay() {
+        document.getElementById('roomprompt').classList.add('hide');
+        document.getElementById('eyedisplay').classList.remove('hide');
+    }
+
+    window.onload = function() {
+        document.getElementById("roomidinput").focus();
+    };
+</script>
+
+<body>
+    <div id="eyedisplay" class="hide">
+        <p class="roomiddisplay">Room ID: <span id="roomiddisplay"></span></p>
+        <button id="eye0" class="eye" onclick="updateEye(0)"></button>
+        <button id="eye1" class="eye" onclick="updateEye(1)"></button>        
+    </div>
+    <div id="roomprompt">
+        <p class="title">The Eyes Have It</p>
+        <input id="roomidinput" placeholder="Existing Room ID">
+        <button class="roombutton" onclick="joinRoom()">Join existing room</button>
+        <hr>
+        <button class="roombutton" onclick="newRoom()">Create new room</button>
+    </div>
+</body>
+
+</html>
