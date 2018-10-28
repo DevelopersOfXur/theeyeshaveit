@@ -1,6 +1,7 @@
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+var hri = require('human-readable-ids').hri;
 
 let rooms = {};
 
@@ -11,9 +12,9 @@ app.get('/', function(req, res){
 io.on('connection', function(socket){
     console.log('a user connected');
     socket.on('join new room', () => {
-        let roomid = Math.floor(Math.random() * 10000);
+        let roomid = hri.random();
         while (rooms[roomid]) {
-            roomid = Math.floor(Math.random() * 10000);
+            roomid = hri.random();
         }
         roomid = roomid.toString();
         rooms[roomid] = {
@@ -23,8 +24,16 @@ io.on('connection', function(socket){
         socket.emit('new room id', roomid);
         mainSocketLoop(socket, roomid);
     })
-    socket.on('room join', (roomid) => {
-        if (rooms[roomid]) {
+    socket.on('room join', (enteredid) => {
+        let roomExists = false;
+        let roomid = enteredid;
+        Object.keys(rooms).forEach(r => {
+            if (r.replace(/-/g, '') == roomid.replace(/-/g, '')) {
+                roomExists = true;
+                roomid = r;
+            }
+        });
+        if (roomExists) {
             socket.emit('room join result', true)
             rooms[roomid]['users'].push(socket);
         } else {
@@ -45,7 +54,6 @@ function mainSocketLoop(socket, roomid) {
         } else {
             rooms[roomid]['eyes'].push(eye);
         }
-        console.log(rooms[roomid]['eyes']);
         rooms[roomid]['users'].forEach((s) => {
             if (s != socket) {
                 s.emit('update eye', eye);
@@ -60,6 +68,6 @@ function mainSocketLoop(socket, roomid) {
     })
 }
 
-http.listen(3000, function(){
-    console.log('listening on *:3000');
+http.listen(80, function(){
+    console.log('listening');
 });
